@@ -1,0 +1,171 @@
+apply plugin: 'com.android.application'
+// 表明是app module（可用型的）而还是library module（只是一个库）
+
+// https://developer.android.com/studio/publish/app-signing.html?hl=zh-cn
+// 从您的构建文件中移除签署信息
+// Create a variable called keystorePropertiesFile, and initialize it to your
+// keystore.properties file, in the rootProject folder.
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+
+// Initialize a new Properties() object called keystoreProperties.
+def keystoreProperties = new Properties()
+
+// Load your keystore.properties file into the keystoreProperties object.
+keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
+android {
+    compileSdkVersion 24
+    buildToolsVersion "25.0.0"
+
+    // 程序块
+    defaultConfig {
+        // 方法调用
+        applicationId "com.huahua.start"
+        minSdkVersion 16
+        targetSdkVersion 24
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        multiDexEnabled true  //突破应用方法数65535的一个限制
+        // 友盟打包替换那个字段
+        manifestPlaceholders = [UMENG_CHANNEL_VALUE : "imooc"] // imooc官方渠道
+    }
+
+    // 使用签名文件 给应用签名  两种模式
+    // 在buildTypes程序块里面使用
+    signingConfigs {
+        debug {}
+
+        release {
+            // https://developer.android.com/studio/publish/app-signing.html?hl=zh-cn
+            // 从您的构建文件中移除签署信息
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['storePassword']
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // 给release包签名
+            signingConfig signingConfigs.release
+            // 指定release包的输出文件名就是我们的渠道名字
+            applicationVariants.all { variant ->
+                // 遍历
+                variant.outputs.each { output ->
+                    def outputFile = output.outputFile
+                    // 如果文件是以apk结尾的，就重新命名名字
+                    if (outputFile != null && outputFile.name.endsWith(".apk")) {
+
+                        def fileName = "${variant.productFlavors[0].name}" + ".apk" // 渠道名+apk
+                        output.outputFile = new File(outputFile.parent, fileName);
+                    }
+                }
+            }
+        }
+        debug {}
+    }
+
+    // 编写多渠道
+    productFlavors {
+        // 官方渠道
+        imooc {
+            manifestPlaceholders = [UMENG_CHANNEL_VALUE : "imooc"]
+            //resValue("string", "app_name", "imooc")
+        }
+
+        // Google Play
+        googleplay {
+            manifestPlaceholders = [UMENG_CHANNEL_VALUE : "googleplay"]
+            // 因为gradle会根据resValue的定义自动生成<string name="app_name">资源。
+            // 所以需要将/res/values/strings.xml中默认生成的<string name="app_name">HelloWorld</string>删除，避免出现重复的string资源定义错误。
+            //resValue("string", "app_name", "googleplay")
+        }
+
+        // 百度应用市场
+        baidu {
+            manifestPlaceholders = [UMENG_CHANNEL_VALUE : "baidu"]
+            //resValue("string", "app_name", "baidu")
+        }
+
+        // 遍历所有的渠道
+        productFlavors.all {
+            flavor -> flavor.manifestPlaceholders = [UMENG_CHANNEL_VALUE : name]
+        }
+    }
+
+    // 静态代码检查工具de配置  里面的配置什么意思
+    lintOptions {
+        abortOnError false
+        lintConfig file("lint.xml")
+    }
+
+    //
+    sourceSets {
+
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile 'com.android.support:appcompat-v7:24.2.1'
+    testCompile 'junit:junit:4.12'
+    // 依赖Library原工程
+    compile project(':imoocsdk')
+    // circleimageview
+    compile 'de.hdodenhof:circleimageview:2.1.0'
+    // 轮播图
+    compile('cn.trinea.android.view.autoscrollviewpager:android-auto-scroll-view-pager:1.1.2') {
+        exclude module: 'support-v4'
+    }
+    // photoview
+    compile 'com.github.chrisbanes:PhotoView:1.3.1'
+    // 二维码
+    compile files('libs/zxing.jar')
+    compile 'com.readystatesoftware.systembartint:systembartint:1.0.3'
+    // ShareSDK
+    compile files('libs/MobCommons-2017.0216.1054.jar')
+    compile files('libs/MobTools-2017.0216.1054.jar')
+    compile files('libs/ShareSDK-Core-2.8.1.jar')
+    compile files('libs/ShareSDK-QQ-2.8.1.jar')
+    compile files('libs/ShareSDK-QZone-2.8.1.jar')
+    compile files('libs/ShareSDK-Wechat-2.8.1.jar')
+    compile files('libs/ShareSDK-Wechat-Core-2.8.1.jar')
+    compile files('libs/ShareSDK-Wechat-Moments-2.8.1.jar')
+    // MPAndroidChart // 直接加入jar包 应该新版本一些方法跟老师的jar版本不一样
+    // compile 'com.github.PhilJay:MPAndroidChart:v3.0.1'
+    compile files('libs/mpchart.jar')
+    compile files('libs/jcore-android_v1.1.0.jar')
+    compile files('libs/jpush-android_v3.0.1.jar')
+    // 友盟
+    compile 'com.umeng.analytics:analytics:6.0.9'
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
